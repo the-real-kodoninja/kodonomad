@@ -266,3 +266,4 @@ MIT License—see [LICENSE](#).
 kodonomad is proudly part of the **Kodoverse**—a network of 2D and virtual platforms uniting nomads, gamers, and creators. Founded by **Emmanuel Barry Moore** (github.com/the-real-kodoninja), a nomad who traded Maryland’s trails for San Francisco’s streets, kodonomad reflects his journey:
 
 > “As a kid, I fished with live bait, biked to trails, and climbed cliffs with my Kindle. In 2016, I went full nomad—suitcase and backpack to California. I slept outside, showered at gyms, coded in parks, and built the Kodoverse while dodging the ‘knock.’ This app is for us—nomads who thrive free. Check my book, *Terrorism & Conspiracy of a Homeless Developer*, for the full tale.”
+
