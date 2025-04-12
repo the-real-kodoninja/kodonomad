@@ -1,57 +1,146 @@
 class Profile {
   final int id;
   final String username;
-  final String bio;
-  final String nomadType;
-  final String photoUrl;
   final int milesTraveled;
+  final int? campingNights;
+  final int? stealthCampingNights;
+  final int? noKnockCount;
+  final int? urbanSleepingNights;
+  final int? wildernessSleepingNights;
+  final int? stargazingNights;
+  final int? peaksClimbed;
+  final int? kayakingMiles;
+  final int? fishCaught;
+  final int? plantsForaged;
+  final int? followers;
+  final int? storiesPosted;
+  final int? cleanups;
+  final int? toursLed;
+  final int? forumPosts;
+  final int? itemsSold;
+  final int? stickersSold;
+  final int? tradesCompleted;
+  final int? reviewsWritten;
+  final int? sponsorships;
+  final int? locationsVisited;
+  final int? bordersCrossed;
+  final int? trailsDiscovered;
 
   Profile({
     required this.id,
     required this.username,
-    required this.bio,
-    required this.nomadType,
-    required this.photoUrl,
-    this.milesTraveled = 0,
+    required this.milesTraveled,
+    this.campingNights,
+    this.stealthCampingNights,
+    this.noKnockCount,
+    this.urbanSleepingNights,
+    this.wildernessSleepingNights,
+    this.stargazingNights,
+    this.peaksClimbed,
+    this.kayakingMiles,
+    this.fishCaught,
+    this.plantsForaged,
+    this.followers,
+    this.storiesPosted,
+    this.cleanups,
+    this.toursLed,
+    this.forumPosts,
+    this.itemsSold,
+    this.stickersSold,
+    this.tradesCompleted,
+    this.reviewsWritten,
+    this.sponsorships,
+    this.locationsVisited,
+    this.bordersCrossed,
+    this.trailsDiscovered,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'username': username,
-      'bio': bio,
-      'nomadType': nomadType,
-      'photoUrl': photoUrl,
-      'milesTraveled': milesTraveled,
-    };
-  }
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'username': username,
+        'miles_traveled': milesTraveled,
+        'camping_nights': campingNights,
+        'stealth_camping_nights': stealthCampingNights,
+        'no_knock_count': noKnockCount,
+        'urban_sleeping_nights': urbanSleepingNights,
+        'wilderness_sleeping_nights': wildernessSleepingNights,
+        'stargazing_nights': stargazingNights,
+        'peaks_climbed': peaksClimbed,
+        'kayaking_miles': kayakingMiles,
+        'fish_caught': fishCaught,
+        'plants_foraged': plantsForaged,
+        'followers': followers,
+        'stories_posted': storiesPosted,
+        'cleanups': cleanups,
+        'tours_led': toursLed,
+        'forum_posts': forumPosts,
+        'items_sold': itemsSold,
+        'stickers_sold': stickersSold,
+        'trades_completed': tradesCompleted,
+        'reviews_written': reviewsWritten,
+        'sponsorships': sponsorships,
+        'locations_visited': locationsVisited,
+        'borders_crossed': bordersCrossed,
+        'trails_discovered': trailsDiscovered,
+      };
 
-  factory Profile.fromMap(Map<String, dynamic> map) {
-    return Profile(
-      id: map['id'],
-      username: map['username'],
-      bio: map['bio'],
-      nomadType: map['nomadType'],
-      photoUrl: map['photoUrl'],
-      milesTraveled: map['milesTraveled'],
-    );
-  }
+  factory Profile.fromMap(Map<String, dynamic> map) => Profile(
+        id: map['id'],
+        username: map['username'],
+        milesTraveled: map['miles_traveled'],
+        campingNights: map['camping_nights'],
+        stealthCampingNights: map['stealth_camping_nights'],
+        noKnockCount: map['no_knock_count'],
+        urbanSleepingNights: map['urban_sleeping_nights'],
+        wildernessSleepingNights: map['wilderness_sleeping_nights'],
+        stargazingNights: map['stargazing_nights'],
+        peaksClimbed: map['peaks_climbed'],
+        kayakingMiles: map['kayaking_miles'],
+        fishCaught: map['fish_caught'],
+        plantsForaged: map['plants_foraged'],
+        followers: map['followers'],
+        storiesPosted: map['stories_posted'],
+        cleanups: map['cleanups'],
+        toursLed: map['tours_led'],
+        forumPosts: map['forum_posts'],
+        itemsSold: map['items_sold'],
+        stickersSold: map['stickers_sold'],
+        tradesCompleted: map['trades_completed'],
+        reviewsWritten: map['reviews_written'],
+        sponsorships: map['sponsorships'],
+        locationsVisited: map['locations_visited'],
+        bordersCrossed: map['borders_crossed'],
+        trailsDiscovered: map['trails_discovered'],
+      );
 
-  Profile copyWith({
-    int? id,
-    String? username,
-    String? bio,
-    String? nomadType,
-    String? photoUrl,
-    int? milesTraveled,
-  }) {
+  Profile copyWithDynamic(String field, dynamic value) {
     return Profile(
-      id: id ?? this.id,
-      username: username ?? this.username,
-      bio: bio ?? this.bio,
-      nomadType: nomadType ?? this.nomadType,
-      photoUrl: photoUrl ?? this.photoUrl,
-      milesTraveled: milesTraveled ?? this.milesTraveled,
+      id: id,
+      username: username,
+      milesTraveled: field == 'miles_traveled' ? value : milesTraveled,
+      campingNights: field == 'camping_nights' ? value : campingNights,
+      stealthCampingNights: field == 'stealth_camping_nights' ? value : stealthCampingNights,
+      noKnockCount: field == 'no_knock_count' ? value : noKnockCount,
+      urbanSleepingNights: field == 'urban_sleeping_nights' ? value : urbanSleepingNights,
+      wildernessSleepingNights: field == 'wilderness_sleeping_nights' ? value : wildernessSleepingNights,
+      stargazingNights: field == 'stargazing_nights' ? value : stargazingNights,
+      peaksClimbed: field == 'peaks_climbed' ? value : peaksClimbed,
+      kayakingMiles: field == 'kayaking_miles' ? value : kayakingMiles,
+      fishCaught: field == 'fish_caught' ? value : fishCaught,
+      plantsForaged: field == 'plants_foraged' ? value : plantsForaged,
+      followers: field == 'followers' ? value : followers,
+      storiesPosted: field == 'stories_posted' ? value : storiesPosted,
+      cleanups: field == 'cleanups' ? value : cleanups,
+      toursLed: field == 'tours_led' ? value : toursLed,
+      forumPosts: field == 'forum_posts' ? value : forumPosts,
+      itemsSold: field == 'items_sold' ? value : itemsSold,
+      stickersSold: field == 'stickers_sold' ? value : stickersSold,
+      tradesCompleted: field == 'trades_completed' ? value : tradesCompleted,
+      reviewsWritten: field == 'reviews_written' ? value : reviewsWritten,
+      sponsorships: field == 'sponsorships' ? value : sponsorships,
+      locationsVisited: field == 'locations_visited' ? value : locationsVisited,
+      bordersCrossed: field == 'borders_crossed' ? value : bordersCrossed,
+      trailsDiscovered: field == 'trails_discovered' ? value : trailsDiscovered,
     );
   }
 }

@@ -7,9 +7,37 @@ class ThemeProvider extends ChangeNotifier {
   final SharedPreferences _prefs;
 
   ThemeProvider(this._prefs)
-      : _currentTheme = _themes[_prefs.getString('theme') ?? 'Desert Sunset']!;
+      : _currentTheme = _themes[_prefs.getString('theme') ?? 'Minimal Nomad']!;
 
   static final Map<String, ThemeData> _themes = {
+  	'Minimal Nomad': ThemeData(
+			primaryColor: const Color(0xFF2E2E2E),
+			colorScheme: const ColorScheme.dark(
+				primary: Color(0xFF2E2E2E),
+				secondary: Color(0xFF4CAF50),
+				onPrimary: Colors.white,
+				surface: Color(0xFF121212),
+				onSurface: Colors.white,
+			),
+			scaffoldBackgroundColor: const Color(0xFF121212),
+			elevatedButtonTheme: ElevatedButtonThemeData(
+				style: ButtonStyle(
+				  backgroundColor: MaterialStateProperty.all(const Color(0xFF4CAF50)),
+				  foregroundColor: MaterialStateProperty.all(Colors.white),
+				  shape: MaterialStateProperty.all(RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+				),
+			),
+			cardTheme: CardTheme(
+				color: const Color(0xFF1E1E1E),
+				elevation: 2,
+				shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+			),
+			textTheme: const TextTheme(
+				headlineSmall: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+				bodyLarge: TextStyle(color: Colors.white70),
+				bodySmall: TextStyle(color: Colors.white54),
+			),
+		),
     'Desert Sunset': ThemeData(
       primaryColor: const Color(0xFF8B5A2B),
       colorScheme: const ColorScheme.light(
@@ -142,6 +170,23 @@ class ThemeProvider extends ChangeNotifier {
         bodyLarge: TextStyle(color: Colors.black87),
       ),
     ),
+    'Elite Nomad': ThemeData(
+			primaryColor: const Color(0xFF1A237E),
+			colorScheme: const ColorScheme.dark(
+				primary: Color(0xFF1A237E),
+				secondary: Color(0xFF00BCD4),
+				onPrimary: Colors.white,
+				surface: Color(0xFF0D1B2A),
+				onSurface: Colors.white,
+			),
+			scaffoldBackgroundColor: const Color(0xFF0D1B2A),
+			elevatedButtonTheme: ElevatedButtonThemeData(
+				style: ButtonStyle(
+				  backgroundColor: MaterialStateProperty.all(const Color(0xFF00BCD4)),
+				  foregroundColor: MaterialStateProperty.all(Colors.white),
+				),
+			),
+		),
   };
 
   ThemeData get currentTheme => _currentTheme;

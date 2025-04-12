@@ -1,32 +1,31 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/notification.dart';
 
-class NotificationNotifier extends StateNotifier<List<Map<String, dynamic>>> {
+class NotificationNotifier extends StateNotifier<List<Notification>> {
   final _supabase = Supabase.instance.client;
-  RealtimeChannel? _channel;
 
   NotificationNotifier() : super([]) {
-    loadNotifications(1); // Profile ID 1
-    _channel = _supabase.channel('notifications').on(
-      RealtimeListenTypes.postgresChanges,
-      ChannelFilter(event: 'INSERT', schema: 'public', table: 'notifications'),
-      (payload, [ref]) => loadNotifications(1),
-    ).subscribe();
+    loadNotifications();
+    _supabase.from('notifications').stream(primaryKey: ['id']).listen((List<Map<String, dynamic>> data) {
+      state = data.map((map) => Notification.fromMap(map)).toList();
+    });
   }
 
-  Future<void> loadNotifications(int profileId) async {
-    state = await _supabase.from('notifications').select().eq('profile_id', profileId).order('timestamp', ascending: false);
+  Future<void> loadNotifications() async {
+    final data = await _supabase.from('notifications').select();
+    state = data.map((map) => Notification.fromMap(map)).toList();
   }
 
-  Future<void> addNotification(int profileId, String type, String content) async {
-    await _supabase.from('notifications').insert({'profile_id': profileId, 'type': type, 'content': content});
-  }
-
-  @override
-  void dispose() {
-    _channel?.unsubscribe();
-    super.dispose();
+  Future<void> markAsRead(int id) async {
+    await _supabase.from('notifications').update({'is_read': true}).eq('id', id);
+    state = [
+      for (final notification in state)
+        notification.id == id ? notification.copyWith(isRead: true) : notification,
+    ];
   }
 }
 
-final notificationProvider = StateNotifierProvider<NotificationNotifier, List<Map<String, dynamic>>>((ref) => NotificationNotifier());
+final notificationProvider = StateNotifierProvider<NotificationNotifier, List<Notification>>((ref) {
+  return NotificationNotifier();
+});

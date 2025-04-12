@@ -20,18 +20,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
 
   static const List<String> _titles = [
-    'Feed', 'Map', 'Market', 'Forums', 'Messages', 'Notifications', 'Leaderboard', 'Profile'
-  ];
-  static const List<Widget> _screens = [
-    FeedScreen(),
-    MapScreen(),
-    MarketplaceScreen(),
-    ForumsScreen(),
-    MessagesScreen(receiverId: 2),
-    NotificationsScreen(),
-    LeaderboardScreen(),
-    ProfileScreen(),
-  ];
+		'Feed', 'Map', 'Market', 'Forums', 'Messages', 'Events', 'Challenges', 'Notifications', 'Leaderboard', 'Profile'
+	];
+	static const List<Widget> _screens = [
+		FeedScreen(),
+		MapScreen(),
+		MarketplaceScreen(),
+		ForumsScreen(),
+		MessagesScreen(receiverId: 2),
+		EventsScreen(),
+		ChallengesScreen(),
+		NotificationsScreen(),
+		LeaderboardScreen(),
+		ProfileScreen(),
+	];
 
   @override
   Widget build(BuildContext context) {
@@ -43,13 +45,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onTap: (index) => setState(() => _selectedIndex = index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.feed), label: 'Feed'),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
-          BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Market'),
-          BottomNavigationBarItem(icon: Icon(Icons.forum), label: 'Forums'),
-          BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Notifications'),
-          BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: 'Leaderboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+					BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
+					BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Market'),
+					BottomNavigationBarItem(icon: Icon(Icons.forum), label: 'Forums'),
+					BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
+					BottomNavigationBarItem(icon: Icon(Icons.event), label: 'Events'),
+					BottomNavigationBarItem(icon: Icon(Icons.star), label: 'Challenges'),
+					BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Notifications'),
+					BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: 'Leaderboard'),
+					BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         selectedItemColor: Theme.of(context).colorScheme.primary,
         unselectedItemColor: Colors.grey,
