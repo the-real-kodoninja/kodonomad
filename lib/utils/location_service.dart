@@ -5,68 +5,72 @@ import 'package:kodonomad/utils/encryption_service.dart';
 
 class LocationService {
   static Future<bool> _checkAndRequestPermissions() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Location services are disabled.');
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions are denied.');
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw LocationException('Location services are disabled. Please enable them in your device settings.');
       }
-    }
 
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception('Location permissions are permanently denied.');
-    }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw LocationException('Location permissions are denied. Please grant permission to continue.');
+        }
+      }
 
-    return true;
+      if (permission == LocationPermission.deniedForever) {
+        throw LocationException('Location permissions are permanently denied. Please enable them in your app settings.');
+      }
+
+      return true;
+    } catch (e) {
+      throw LocationException('Failed to check or request permissions: $e');
+    }
   }
 
-  // Get the user's current location and encrypt it
   static Future<Map<String, dynamic>> getCurrentLocation() async {
     try {
       await _checkAndRequestPermissions();
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-      );
+      ).timeout(const Duration(seconds: 10), onTimeout: () {
+        throw LocationException('Failed to get location: Request timed out.');
+      });
       final encryptedLocation = EncryptionService.encryptLocation(
         position.latitude,
         position.longitude,
       );
       return {
         'encrypted': encryptedLocation,
-        'latitude': position.latitude, // Keep raw data for in-memory use only
+        'latitude': position.latitude,
         'longitude': position.longitude,
       };
     } catch (e) {
-      rethrow;
+      throw LocationException('Failed to get current location: $e');
     }
   }
 
-  // Fetch nearby nomad spots using encrypted location (server-side)
   static Future<List<Map<String, dynamic>>> fetchNearbySpots(String encryptedLocation) async {
-    // In a real app, this would be a Supabase function to hide the API key
-    final location = EncryptionService.decryptLocation(encryptedLocation);
-    const apiKey = 'YOUR_GOOGLE_API_KEY';
-    const radius = 10000; // 10km radius
-    const type = 'park|cafe|tourist_attraction';
-
-    final url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
-        '?location=${location[0]},${location[1]}'
-        '&radius=$radius'
-        '&type=$type'
-        '&key=$apiKey';
-
     try {
-      final response = await ApiService.get(url);
+      final location = EncryptionService.decryptLocation(encryptedLocation);
+      const apiKey = 'YOUR_GOOGLE_API_KEY';
+      const radius = 10000;
+      const type = 'park|cafe|tourist_attraction';
+
+      final url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json'
+          '?location=${location[0]},${location[1]}'
+          '&radius=$radius'
+          '&type=$type'
+          '&key=$apiKey';
+
+      final response = await ApiService.get(url).timeout(const Duration(seconds: 10), onTimeout: () {
+        throw LocationException('Failed to fetch nearby spots: Request timed out.');
+      });
       final results = response['results'] as List<dynamic>;
       return results.map((place) {
         final placeLat = place['geometry']['location']['lat'];
         final placeLng = place['geometry']['location']['lng'];
-        // Encrypt the place's location before returning
         final encryptedPlaceLocation = EncryptionService.encryptLocation(placeLat, placeLng);
         return {
           'name': place['name'],
@@ -80,7 +84,15 @@ class LocationService {
         };
       }).toList();
     } catch (e) {
-      throw Exception('Failed to fetch nearby spots: $e');
+      throw LocationException('Failed to fetch nearby spots: $e');
     }
   }
+}
+
+class LocationException implements Exception {
+  final String message;
+  LocationException(this.message);
+
+  @override
+  String toString() => message;
 }

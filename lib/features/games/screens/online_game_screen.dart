@@ -1,5 +1,6 @@
 // lib/features/games/screens/online_game_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // For RawKeyboardListener
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_gamepad/flutter_gamepad.dart';
 import 'package:kodonomad/features/games/providers/game_provider.dart';
@@ -18,7 +19,7 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
   String currentPlayer = 'X';
   String? winner;
   int myId = 1;
-  int selectedIndex = 0; // Track the currently selected cell for gamepad navigation
+  int selectedIndex = 0;
 
   @override
   void initState() {
@@ -27,7 +28,6 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
       setState(() {
         if (winner != null) return;
 
-        // Navigate the board with D-pad or joystick
         if (event.type == GamepadEventType.button && event.value == 1) {
           if (event.button == GamepadButton.dpadUp) {
             selectedIndex = (selectedIndex - 3) % 9;
@@ -40,7 +40,6 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
           } else if (event.button == GamepadButton.dpadRight) {
             selectedIndex = (selectedIndex + 1) % 9;
           } else if (event.button == GamepadButton.buttonA) {
-            // Select the cell with the A button
             if (board[selectedIndex] == null) {
               board[selectedIndex] = currentPlayer;
               currentPlayer = currentPlayer == 'X' ? 'O' : 'X';
@@ -60,91 +59,118 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.game.name)),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: mySessions.length + 1,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        ref.read(gameProvider.notifier).createSession(widget.game.id, myId);
-                      },
-                      child: const Text('Create New Session'),
-                    ),
-                  );
+      body: RawKeyboardListener(
+        focusNode: FocusNode(),
+        autofocus: true,
+        onKey: (RawKeyEvent event) {
+          if (event is RawKeyDownEvent && winner == null) {
+            setState(() {
+              if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                selectedIndex = (selectedIndex - 3) % 9;
+                if (selectedIndex < 0) selectedIndex += 9;
+              } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                selectedIndex = (selectedIndex + 3) % 9;
+              } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                selectedIndex = (selectedIndex - 1) % 9;
+                if (selectedIndex < 0) selectedIndex += 9;
+              } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                selectedIndex = (selectedIndex + 1) % 9;
+              } else if (event.logicalKey == LogicalKeyboardKey.space) {
+                if (board[selectedIndex] == null) {
+                  board[selectedIndex] = currentPlayer;
+                  currentPlayer = currentPlayer == 'X' ? 'O' : 'X';
+                  winner = _checkWinner();
                 }
-                final session = mySessions[index - 1];
-                final participants = session.participants;
-                final isJoined = participants.any((p) => p['profile_id'] == myId);
-                return ListTile(
-                  title: Text('Session #${session.id} - Host: ${participants.firstWhere((p) => p['profile_id'] == session.hostId)['profiles']['username']}'),
-                  subtitle: Text('Players: ${participants.length}/2'),
-                  trailing: isJoined
-                      ? const Text('Joined')
-                      : ElevatedButton(
-                          onPressed: participants.length < 2
-                              ? () {
-                                  ref.read(gameProvider.notifier).joinSession(session.id, myId);
-                                }
-                              : null,
-                          child: const Text('Join'),
-                        ),
-                  onTap: isJoined && participants.length == 2
-                      ? () {
-                          setState(() {
-                            board = List.filled(9, null);
-                            currentPlayer = 'X';
-                            winner = null;
-                            selectedIndex = 0;
-                          });
-                        }
-                      : null,
-                );
-              },
-            ),
-          ),
-
-          if (mySessions.any((s) => s.participants.any((p) => p['profile_id'] == myId) && s.participants.length == 2)) ...[
-            const SizedBox(height: 16),
-            Text(winner != null ? 'Winner: $winner' : 'Current Player: $currentPlayer'),
-            const SizedBox(height: 16),
-            GridView.builder(
-              shrinkWrap: true,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 1,
+              }
+            });
+          }
+        },
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                itemCount: mySessions.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: ElevatedButton(
+                        onPressed: () {
+                          ref.read(gameProvider.notifier).createSession(widget.game.id, myId);
+                        },
+                        child: const Text('Create New Session'),
+                      ),
+                    );
+                  }
+                  final session = mySessions[index - 1];
+                  final participants = session.participants;
+                  final isJoined = participants.any((p) => p['profile_id'] == myId);
+                  return ListTile(
+                    title: Text('Session #${session.id} - Host: ${participants.firstWhere((p) => p['profile_id'] == session.hostId)['profiles']['username']}'),
+                    subtitle: Text('Players: ${participants.length}/2'),
+                    trailing: isJoined
+                        ? const Text('Joined')
+                        : ElevatedButton(
+                            onPressed: participants.length < 2
+                                ? () {
+                                    ref.read(gameProvider.notifier).joinSession(session.id, myId);
+                                  }
+                                : null,
+                            child: const Text('Join'),
+                          ),
+                    onTap: isJoined && participants.length == 2
+                        ? () {
+                            setState(() {
+                              board = List.filled(9, null);
+                              currentPlayer = 'X';
+                              winner = null;
+                              selectedIndex = 0;
+                            });
+                          }
+                        : null,
+                  );
+                },
               ),
-              itemCount: 9,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    if (board[index] == null && winner == null) {
-                      setState(() {
-                        board[index] = currentPlayer;
-                        currentPlayer = currentPlayer == 'X' ? 'O' : 'X';
-                        winner = _checkWinner();
-                      });
-                    }
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.all(4),
-                    color: index == selectedIndex ? Colors.yellow[200] : Colors.grey[200],
-                    child: Center(
-                      child: Text(
-                        board[index] ?? '',
-                        style: const TextStyle(fontSize: 40),
+            ),
+
+            if (mySessions.any((s) => s.participants.any((p) => p['profile_id'] == myId) && s.participants.length == 2)) ...[
+              const SizedBox(height: 16),
+              Text(winner != null ? 'Winner: $winner' : 'Current Player: $currentPlayer'),
+              const SizedBox(height: 16),
+              GridView.builder(
+                shrinkWrap: true,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 1,
+                ),
+                itemCount: 9,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      if (board[index] == null && winner == null) {
+                        setState(() {
+                          board[index] = currentPlayer;
+                          currentPlayer = currentPlayer == 'X' ? 'O' : 'X';
+                          winner = _checkWinner();
+                        });
+                      }
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.all(4),
+                      color: index == selectedIndex ? Colors.yellow[200] : Colors.grey[200],
+                      child: Center(
+                        child: Text(
+                          board[index] ?? '',
+                          style: const TextStyle(fontSize: 40),
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

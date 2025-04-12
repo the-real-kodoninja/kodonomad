@@ -36,7 +36,6 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Manual Check-In
                 TextField(
                   controller: _locationController,
                   decoration: const InputDecoration(labelText: 'Location Name'),
@@ -53,7 +52,6 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Automatic Check-In Toggle
                 SwitchListTile(
                   title: const Text('Enable Automatic Check-Ins'),
                   value: _autoCheckInEnabled,
@@ -61,7 +59,6 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                     setState(() {
                       _autoCheckInEnabled = value;
                       if (value) {
-                        // Start listening for location changes
                         Geolocator.getPositionStream().listen((position) {
                           ref.read(checkInProvider.notifier).autoCheckIn();
                         });
@@ -70,7 +67,6 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                   },
                 ),
 
-                // Check-In History
                 const SizedBox(height: 16),
                 const Text('Check-In History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 ...checkIns.map((checkIn) => ListTile(
@@ -79,7 +75,6 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
                       trailing: checkIn.isAutomatic ? const Text('Auto') : null,
                     )),
 
-                // Earned Badges
                 const SizedBox(height: 16),
                 const Text('Earned Badges', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 ...earnedBadges.map((badge) => ListTile(
@@ -92,7 +87,19 @@ class _CheckInScreenState extends ConsumerState<CheckInScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error: $error'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.read(checkInProvider.notifier).fetchCheckIns(),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

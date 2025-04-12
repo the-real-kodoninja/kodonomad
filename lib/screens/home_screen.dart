@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../features/feed/screens/feed_screen.dart';
-import '../features/spots/screens/map_screen.dart';
-import '../features/marketplace/screens/marketplace_screen.dart';
-import '../features/forums/screens/forums_screen.dart';
-import '../features/messages/screens/messages_screen.dart';
-import '../features/notifications/screens/notifications_screen.dart';
-import '../features/badges/screens/leaderboard_screen.dart';
-import '../features/profile/screens/profile_screen.dart';
-import '../features/nimbus/screens/nimbus_screen.dart';
-import '../features/events/screens/events_screen.dart';
-import '../features/challenges/screens/challenges_screen.dart';
-import '../features/lists/screens/lists_screen.dart';
-import '../features/recommendations/screens/recommendations_screen.dart';
-import '../features/search/screens/search_screen.dart'; 
+import 'package:kodonomad/features/feed/screens/feed_screen.dart';
+import 'package:kodonomad/features/spots/screens/map_screen.dart';
+import 'package:kodonomad/features/marketplace/screens/marketplace_screen.dart';
+import 'package:kodonomad/features/forums/screens/forums_screen.dart';
+import 'package:kodonomad/features/messages/screens/messages_screen.dart';
+import 'package:kodonomad/features/notifications/screens/notifications_screen.dart';
+import 'package:kodonomad/features/badges/screens/leaderboard_screen.dart';
+import 'package:kodonomad/features/profile/screens/profile_screen.dart';
+import 'package:kodonomad/features/nimbus/screens/nimbus_screen.dart';
+import 'package:kodonomad/features/events/screens/events_screen.dart';
+import 'package:kodonomad/features/challenges/screens/challenges_screen.dart';
+import 'package:kodonomad/features/lists/screens/lists_screen.dart';
+import 'package:kodonomad/features/recommendations/screens/recommendations_screen.dart';
+import 'package:kodonomad/features/search/screens/search_screen.dart';
+import 'package:kodonomad/features/static/screens/about_screen.dart';
+import 'package:kodonomad/features/static/screens/terms_screen.dart';
+import 'package:kodonomad/features/static/screens/legal_screen.dart';
+import 'package:kodonomad/features/static/screens/contact_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen();
@@ -37,6 +41,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     'Explore',
     'Games',
     'Check-Ins',
+    'Resources',
     'Notifications',
     'Leaderboard',
     'Profile'
@@ -54,6 +59,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ExploreScreen(),
     GamesScreen(),
     CheckInScreen(),
+    ResourcesScreen(),
     NotificationsScreen(),
     LeaderboardScreen(),
     ProfileScreen(),
@@ -73,6 +79,66 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Text(
+                'kodonomad',
+                style: TextStyle(color: Colors.white, fontSize: 24),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.info),
+              title: const Text('About'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AboutScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.description),
+              title: const Text('Terms of Service'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TermsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.gavel),
+              title: const Text('Legal'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LegalScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.contact_mail),
+              title: const Text('Contact'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ContactScreen()),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -89,9 +155,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           BottomNavigationBarItem(
               icon: Icon(Icons.recommend), label: 'Recommendations'),
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
-	  BottomNavigationBarItem(icon: Icon(Icons.videogame_asset), label: 'Games'),
+          BottomNavigationBarItem(icon: Icon(Icons.videogame_asset), label: 'Games'),
           BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: 'Check-Ins'),
-	  BottomNavigationBarItem(
+          BottomNavigationBarItem(icon: Icon(Icons.handyman), label: 'Resources'),
+          BottomNavigationBarItem(
               icon: Icon(Icons.notifications), label: 'Notifications'),
           BottomNavigationBarItem(
               icon: Icon(Icons.leaderboard), label: 'Leaderboard'),
