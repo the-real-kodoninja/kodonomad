@@ -1,25 +1,32 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/database.dart';
 import '../models/post.dart';
 
 class PostNotifier extends StateNotifier<List<Post>> {
   final DatabaseHelper _dbHelper;
-  final supabase = Supabase.instance.client;
+  final _supabase = Supabase.instance.client;
 
   PostNotifier(this._dbHelper) : super([]) {
     loadPosts();
   }
 
   Future<void> loadPosts() async {
-    final maps = await _dbHelper.getPosts();
-    final remotePosts = await supabase.from('posts').select();
-    state = maps.map((map) => Post.fromMap(map)).toList();
+  final localMaps = await _dbHelper.getPosts();
+  final remotePosts = await _supabase.from('posts').select();
+  state = remotePosts.map((map) => Post.fromMap(map)).toList();
+  for (var post in localMaps) {
+    if (!remotePosts.any((r) => r['id'] == post['id'])) {
+      await _supabase.from('posts').insert(post);
+    }
   }
+}
 
   Future<void> addPost(Post post) async {
     final newPostMap = await _dbHelper.createPost(post.toMap());
     final newPost = Post.fromMap(newPostMap);
     state = [...state, newPost];
+    await _supabase.from('posts').insert(newPost.toMap());
   }
 
   Future<void> updatePost(Post post) async {

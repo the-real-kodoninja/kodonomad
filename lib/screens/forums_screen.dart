@@ -78,6 +78,7 @@ class ForumPostCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final repliesAsync = ref.watch(forumProvider.selectAsync((notifier) => notifier.getReplies(post.id)));
     return Card(
       margin: EdgeInsets.all(8),
       child: Padding(
@@ -89,21 +90,58 @@ class ForumPostCard extends ConsumerWidget {
             SizedBox(height: 8),
             Text(post.content),
             SizedBox(height: 8),
-            Row(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_upward),
-                  onPressed: () => ref.read(forumProvider.notifier).upvotePost(post.id, 1),
-                ),
-                Text('${post.upvotes}'),
-                IconButton(
-                  icon: Icon(Icons.arrow_downward),
-                  onPressed: () => ref.read(forumProvider.notifier).downvotePost(post.id, 1),
-                ),
-                Text('${post.downvotes}'),
-                Spacer(),
-                Text(post.timestamp.toString().substring(0, 16)),
-              ],
+            Row(children: [
+              IconButton(
+                icon: Icon(Icons.arrow_upward),
+                onPressed: () => ref.read(forumProvider.notifier).upvotePost(post.id, 1),
+              ),
+              Text('${post.upvotes}'),
+              IconButton(
+                icon: Icon(Icons.arrow_downward),
+                onPressed: () => ref.read(forumProvider.notifier).downvotePost(post.id, 1),
+              ),
+              Text('${post.downvotes}'),
+              Spacer(),
+              Text(post.timestamp.toString().substring(0, 16)),
+            ]),
+            TextButton(
+              onPressed: () {
+                final controller = TextEditingController();
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('Reply'),
+                    content: TextField(controller: controller),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel')),
+                      TextButton(
+                        onPressed: () {
+                          ref.read(forumProvider.notifier).addReply(post.id, 1, controller.text);
+                          Navigator.pop(context);
+                        },
+                        child: Text('Send'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              child: Text('Reply'),
+            ),
+            repliesAsync.when(
+              data: (replies) => Column(
+                children: replies.map((reply) => Padding(
+                  padding: EdgeInsets.only(left: 16, top: 4),
+                  child: Row(
+                    children: [
+                      CircleAvatar(radius: 12),
+                      SizedBox(width: 8),
+                      Expanded(child: Text(reply['content'])),
+                    ],
+                  ),
+                )).toList(),
+              ),
+              loading: () => CircularProgressIndicator(),
+              error: (e, _) => Text('Error: $e'),
             ),
           ],
         ),

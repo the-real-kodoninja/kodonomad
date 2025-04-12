@@ -42,6 +42,10 @@ class PostCard extends ConsumerWidget {
             SizedBox(height: 8),
             Row(
               children: [
+              	IconButton(
+		      icon: const Icon(Icons.chat_bubble),
+		      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NimbusScreen())),
+		    ),
                 IconButton(
                   icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border),
                   color: isLiked ? Colors.red : null,
