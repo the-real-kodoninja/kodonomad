@@ -5,6 +5,9 @@ import '../../../core/providers/profile_provider.dart';
 import '../../../core/providers/post_provider.dart';
 import '../../../core/providers/listing_provider.dart';
 import '../../../core/providers/notification_provider.dart';
+import '../../subscriptions/providers/subscription_provider.dart';
+import '../../events/providers/event_provider.dart';
+import '../../challenges/providers/challenge_provider.dart';
 
 class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> {
   final _supabase = Supabase.instance.client;
@@ -15,17 +18,17 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
   }
 
   void _initBadgeListeners() {
-    // Listen to profile updates for hiking, camping, and activity badges
     _ref.listen(profileProvider, (previous, next) {
       for (var profile in next) {
         _checkHikingBadges(profile);
         _checkCampingBadges(profile);
         _checkOutdoorActivityBadges(profile);
         _checkCommunityBadges(profile);
+        _checkMarketplaceBadges(profile);
+        _checkPremiumBadges(profile);
       }
     });
 
-    // Listen to post updates for storytelling badges
     _ref.listen(postProvider, (previous, next) {
       final profiles = _ref.read(profileProvider);
       for (var profile in profiles) {
@@ -34,7 +37,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       }
     });
 
-    // Listen to listing updates for marketplace badges
     _ref.listen(listingProvider, (previous, next) {
       final profiles = _ref.read(profileProvider);
       for (var profile in profiles) {
@@ -42,6 +44,20 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
         final userStickersSold = next.where((listing) => listing.profileId == profile.id && listing.category == 'Sticker').length;
         _updateProfileField(profile.id, 'items_sold', userItemsSold);
         _updateProfileField(profile.id, 'stickers_sold', userStickersSold);
+      }
+    });
+
+    _ref.listen(eventProvider, (previous, next) {
+      final profiles = _ref.read(profileProvider);
+      for (var profile in profiles) {
+        _checkPremiumBadges(profile);
+      }
+    });
+
+    _ref.listen(challengeProvider, (previous, next) {
+      final profiles = _ref.read(profileProvider);
+      for (var profile in profiles) {
+        _checkPremiumBadges(profile);
       }
     });
   }
@@ -75,10 +91,10 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       'name': name,
       'level': level,
       'earned_date': DateTime.now().toIso8601String(),
+      'is_premium': name.contains('Elite') || name.contains('Pro') || name.contains('Basic'),
     });
     await loadBadges(profileId);
 
-    // Send notification
     await _supabase.from('notifications').insert({
       'profile_id': profileId,
       'type': 'badge',
@@ -89,14 +105,58 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
     _ref.read(notificationProvider.notifier).loadNotifications();
   }
 
-  // Hiking & Travel Badges
+  // Premium Badges
+  Future<void> _checkPremiumBadges(Profile profile) async {
+    final subscription = _ref.read(subscriptionProvider)[profile.id];
+    if (subscription == null) return;
+
+    final events = _ref.read(eventProvider);
+    final challenges = _ref.read(challengeProvider);
+    final eventParticipants = await _supabase.from('event_participants').select().eq('profile_id', profile.id);
+    final challengeParticipants = await _supabase.from('challenge_participants').select().eq('profile_id', profile.id);
+
+    // Basic Tier: Event Enthusiast (Join 5 events)
+    if (subscription == 'basic' || subscription == 'pro' || subscription == 'elite') {
+      final eventsJoined = eventParticipants.length;
+      if (eventsJoined >= 5 && !state[profile.id]!.any((b) => b['name'] == 'Basic Event Enthusiast' && b['level'] == 1)) {
+        await _awardBadge(profile.id, 'Basic Event Enthusiast', 1);
+      }
+      if (eventsJoined >= 10 && !state[profile.id]!.any((b) => b['name'] == 'Basic Event Enthusiast' && b['level'] == 2)) {
+        await _awardBadge(profile.id, 'Basic Event Enthusiast', 2);
+      }
+    }
+
+    // Pro Tier: Challenge Champion (Complete 3 challenges)
+    if (subscription == 'pro' || subscription == 'elite') {
+      final challengesCompleted = challengeParticipants.where((cp) => cp['completed'] == true).length;
+      if (challengesCompleted >= 3 && !state[profile.id]!.any((b) => b['name'] == 'Pro Challenge Champion' && b['level'] == 1)) {
+        await _awardBadge(profile.id, 'Pro Challenge Champion', 1);
+      }
+      if (challengesCompleted >= 10 && !state[profile.id]!.any((b) => b['name'] == 'Pro Challenge Champion' && b['level'] == 2)) {
+        await _awardBadge(profile.id, 'Pro Challenge Champion', 2);
+      }
+    }
+
+    // Elite Tier: Global Influencer (Gain 500 followers and host 5 events)
+    if (subscription == 'elite') {
+      final followers = profile.followers ?? 0;
+      final hostedEvents = events.where((e) => e.profileId == profile.id).length;
+      if (followers >= 500 && hostedEvents >= 5 && !state[profile.id]!.any((b) => b['name'] == 'Elite Global Influencer' && b['level'] == 1)) {
+        await _awardBadge(profile.id, 'Elite Global Influencer', 1);
+      }
+      if (followers >= 1000 && hostedEvents >= 10 && !state[profile.id]!.any((b) => b['name'] == 'Elite Global Influencer' && b['level'] == 2)) {
+        await _awardBadge(profile.id, 'Elite Global Influencer', 2);
+      }
+    }
+  }
+
+  // Existing badge methods (Hiking, Camping, etc.) remain unchanged
   Future<void> _checkHikingBadges(Profile profile) async {
     final miles = profile.milesTraveled;
     final locations = profile.locationsVisited ?? 0;
     final borders = profile.bordersCrossed ?? 0;
     final trails = profile.trailsDiscovered ?? 0;
 
-    // Trailblazer
     if (miles >= 100 && !state[profile.id]!.any((b) => b['name'] == 'Trailblazer' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Trailblazer', 1);
     }
@@ -113,7 +173,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Trailblazer', 5);
     }
 
-    // Nomad Navigator
     if (locations >= 5 && !state[profile.id]!.any((b) => b['name'] == 'Nomad Navigator' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Nomad Navigator', 1);
     }
@@ -130,7 +189,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Nomad Navigator', 5);
     }
 
-    // Globe Trotter
     if (borders >= 1 && !state[profile.id]!.any((b) => b['name'] == 'Globe Trotter' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Globe Trotter', 1);
     }
@@ -147,7 +205,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Globe Trotter', 5);
     }
 
-    // Pathfinder
     if (trails >= 1 && !state[profile.id]!.any((b) => b['name'] == 'Pathfinder' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Pathfinder', 1);
     }
@@ -165,7 +222,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
     }
   }
 
-  // Camping & Stealth Badges
   Future<void> _checkCampingBadges(Profile profile) async {
     final campingNights = profile.campingNights ?? 0;
     final stealthNights = profile.stealthCampingNights ?? 0;
@@ -173,7 +229,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
     final urbanNights = profile.urbanSleepingNights ?? 0;
     final wildernessNights = profile.wildernessSleepingNights ?? 0;
 
-    // Campfire King
     if (campingNights >= 10 && !state[profile.id]!.any((b) => b['name'] == 'Campfire King' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Campfire King', 1);
     }
@@ -184,7 +239,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Campfire King', 3);
     }
 
-    // Stealth Camper
     if (stealthNights >= 5 && !state[profile.id]!.any((b) => b['name'] == 'Stealth Camper' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Stealth Camper', 1);
     }
@@ -201,7 +255,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Stealth Camper', 5);
     }
 
-    // No-Knock Nomad
     if (noKnockCount >= 5 && !state[profile.id]!.any((b) => b['name'] == 'No-Knock Nomad' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'No-Knock Nomad', 1);
     }
@@ -218,7 +271,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'No-Knock Nomad', 5);
     }
 
-    // Urban Survivor
     if (urbanNights >= 1 && !state[profile.id]!.any((b) => b['name'] == 'Urban Survivor' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Urban Survivor', 1);
     }
@@ -235,7 +287,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Urban Survivor', 5);
     }
 
-    // Wilderness Sleeper
     if (wildernessNights >= 10 && !state[profile.id]!.any((b) => b['name'] == 'Wilderness Sleeper' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Wilderness Sleeper', 1);
     }
@@ -244,7 +295,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
     }
   }
 
-  // Outdoor Activity Badges
   Future<void> _checkOutdoorActivityBadges(Profile profile) async {
     final stargazingNights = profile.stargazingNights ?? 0;
     final peaksClimbed = profile.peaksClimbed ?? 0;
@@ -252,7 +302,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
     final fishCaught = profile.fishCaught ?? 0;
     final plantsForaged = profile.plantsForaged ?? 0;
 
-    // Stargazer
     if (stargazingNights >= 5 && !state[profile.id]!.any((b) => b['name'] == 'Stargazer' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Stargazer', 1);
     }
@@ -263,7 +312,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Stargazer', 3);
     }
 
-    // Mountain Master
     if (peaksClimbed >= 1 && !state[profile.id]!.any((b) => b['name'] == 'Mountain Master' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Mountain Master', 1);
     }
@@ -280,7 +328,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Mountain Master', 5);
     }
 
-    // River Runner
     if (kayakingMiles >= 10 && !state[profile.id]!.any((b) => b['name'] == 'River Runner' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'River Runner', 1);
     }
@@ -291,7 +338,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'River Runner', 3);
     }
 
-    // Fisherman
     if (fishCaught >= 5 && !state[profile.id]!.any((b) => b['name'] == 'Fisherman' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Fisherman', 1);
     }
@@ -305,7 +351,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Fisherman', 4);
     }
 
-    // Forager
     if (plantsForaged >= 5 && !state[profile.id]!.any((b) => b['name'] == 'Forager' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Forager', 1);
     }
@@ -323,7 +368,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
     }
   }
 
-  // Community & Social Badges
   Future<void> _checkCommunityBadges(Profile profile) async {
     final followers = profile.followers ?? 0;
     final storiesPosted = profile.storiesPosted ?? 0;
@@ -331,7 +375,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
     final toursLed = profile.toursLed ?? 0;
     final forumPosts = profile.forumPosts ?? 0;
 
-    // Social Butterfly
     if (followers >= 10 && !state[profile.id]!.any((b) => b['name'] == 'Social Butterfly' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Social Butterfly', 1);
     }
@@ -348,7 +391,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Social Butterfly', 5);
     }
 
-    // Storyteller
     if (storiesPosted >= 10 && !state[profile.id]!.any((b) => b['name'] == 'Storyteller' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Storyteller', 1);
     }
@@ -365,7 +407,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Storyteller', 5);
     }
 
-    // Eco Warrior
     if (cleanups >= 1 && !state[profile.id]!.any((b) => b['name'] == 'Eco Warrior' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Eco Warrior', 1);
     }
@@ -376,7 +417,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Eco Warrior', 3);
     }
 
-    // Guide Guru
     if (toursLed >= 1 && !state[profile.id]!.any((b) => b['name'] == 'Guide Guru' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Guide Guru', 1);
     }
@@ -393,7 +433,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Guide Guru', 5);
     }
 
-    // Forum Friend
     if (forumPosts >= 10 && !state[profile.id]!.any((b) => b['name'] == 'Forum Friend' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Forum Friend', 1);
     }
@@ -402,7 +441,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
     }
   }
 
-  // Marketplace & Gear Badges
   Future<void> _checkMarketplaceBadges(Profile profile) async {
     final itemsSold = profile.itemsSold ?? 0;
     final stickersSold = profile.stickersSold ?? 0;
@@ -410,7 +448,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
     final reviews = profile.reviewsWritten ?? 0;
     final sponsorships = profile.sponsorships ?? 0;
 
-    // Gear Collector
     if (itemsSold >= 5 && !state[profile.id]!.any((b) => b['name'] == 'Gear Collector' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Gear Collector', 1);
     }
@@ -421,7 +458,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Gear Collector', 3);
     }
 
-    // Sticker Star
     if (stickersSold >= 5 && !state[profile.id]!.any((b) => b['name'] == 'Sticker Star' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Sticker Star', 1);
     }
@@ -438,7 +474,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Sticker Star', 5);
     }
 
-    // Trader
     if (trades >= 1 && !state[profile.id]!.any((b) => b['name'] == 'Trader' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Trader', 1);
     }
@@ -455,7 +490,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Trader', 5);
     }
 
-    // Gear Reviewer
     if (reviews >= 1 && !state[profile.id]!.any((b) => b['name'] == 'Gear Reviewer' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Gear Reviewer', 1);
     }
@@ -472,7 +506,6 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
       await _awardBadge(profile.id, 'Gear Reviewer', 5);
     }
 
-    // Sponsor Scout
     if (sponsorships >= 1 && !state[profile.id]!.any((b) => b['name'] == 'Sponsor Scout' && b['level'] == 1)) {
       await _awardBadge(profile.id, 'Sponsor Scout', 1);
     }
@@ -481,15 +514,57 @@ class BadgeNotifier extends StateNotifier<Map<int, List<Map<String, dynamic>>>> 
     }
   }
   
-  Future<void> _awardPremiumBadge(int profileId, String name, int level) async {
-  final subscription = _ref.read(subscriptionProvider)[profileId];
-  if (subscription == null) return;
-  await _awardBadge(profileId, name, level);
-}
+  Future<void> _updateVerificationAndFlair(int profileId) async {
+		final badges = state[profileId] ?? [];
+		final subscription = _ref.read(subscriptionProvider)[profileId];
+		final profile = _ref.read(profileProvider).firstWhere((p) => p.id == profileId);
 
-	// Example: Award premium badge for Elite tier
-	if (subscription == 'elite' && someCondition) {
-		await _awardPremiumBadge(profileId, 'Elite Explorer', 1);
+		// Verification criteria: 10+ badges or Elite subscription
+		final isVerified = badges.length >= 10 || subscription == 'elite';
+		String? flairIcon;
+
+		// Assign flair based on highest-level badge
+		if (badges.any((b) => b['name'] == 'Elite Global Influencer' && b['level'] >= 2)) {
+		  flairIcon = '🌟'; // Elite Influencer
+		} else if (badges.any((b) => b['name'] == 'Pro Challenge Champion' && b['level'] >= 2)) {
+		  flairIcon = '🏆'; // Pro Champion
+		} else if (badges.any((b) => b['name'] == 'Basic Event Enthusiast' && b['level'] >= 2)) {
+		  flairIcon = '🎉'; // Basic Enthusiast
+		} else if (badges.any((b) => b['name'] == 'Trailblazer' && b['level'] >= 5)) {
+		  flairIcon = '🏔️'; // Top Trailblazer
+		} else if (badges.any((b) => b['name'] == 'Social Butterfly' && b['level'] >= 5)) {
+		  flairIcon = '🦋'; // Top Social Butterfly
+		}
+
+		await _supabase.from('profiles').update({
+		  'is_verified': isVerified,
+		  'flair_icon': flairIcon,
+		}).eq('id', profileId);
+
+		final updatedProfile = profile.copyWithDynamic('is_verified', isVerified).copyWithDynamic('flair_icon', flairIcon);
+		_ref.read(profileProvider.notifier).updateProfile(updatedProfile);
+	}
+
+	// Call this in _awardBadge
+	Future<void> _awardBadge(int profileId, String name, int level) async {
+		await _supabase.from('badges').insert({
+		  'profile_id': profileId,
+		  'name': name,
+		  'level': level,
+		  'earned_date': DateTime.now().toIso8601String(),
+		  'is_premium': name.contains('Elite') || name.contains('Pro') || name.contains('Basic'),
+		});
+		await loadBadges(profileId);
+		await _updateVerificationAndFlair(profileId);
+
+		await _supabase.from('notifications').insert({
+		  'profile_id': profileId,
+		  'type': 'badge',
+		  'content': 'You earned the $name (Level $level) badge!',
+		  'timestamp': DateTime.now().toIso8601String(),
+		  'is_read': false,
+		});
+		_ref.read(notificationProvider.notifier).loadNotifications();
 	}
   
 }
