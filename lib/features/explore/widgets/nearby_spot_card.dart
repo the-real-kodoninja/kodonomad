@@ -1,5 +1,7 @@
+// lib/features/explore/widgets/nearby_spot_card.dart
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:kodonomad/utils/encryption_service.dart';
 
 class NearbySpotCard extends StatelessWidget {
   final Map<String, dynamic> spot;
@@ -8,6 +10,7 @@ class NearbySpotCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final location = EncryptionService.decryptLocation(spot['encrypted_location']);
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Padding(
@@ -23,13 +26,13 @@ class NearbySpotCard extends StatelessWidget {
               height: 150,
               child: GoogleMap(
                 initialCameraPosition: CameraPosition(
-                  target: LatLng(spot['lat'], spot['lng']),
+                  target: LatLng(location[0], location[1]),
                   zoom: 14,
                 ),
                 markers: {
                   Marker(
                     markerId: MarkerId(spot['name']),
-                    position: LatLng(spot['lat'], spot['lng']),
+                    position: LatLng(location[0], location[1]),
                   ),
                 },
               ),

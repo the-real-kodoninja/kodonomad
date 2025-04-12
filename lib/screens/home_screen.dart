@@ -36,6 +36,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     'Recommendations',
     'Explore',
     'Games',
+    'Check-Ins',
     'Notifications',
     'Leaderboard',
     'Profile'
@@ -52,6 +53,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     RecommendationsScreen(),
     ExploreScreen(),
     GamesScreen(),
+    CheckInScreen(),
     NotificationsScreen(),
     LeaderboardScreen(),
     ProfileScreen(),
@@ -88,7 +90,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               icon: Icon(Icons.recommend), label: 'Recommendations'),
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
 	  BottomNavigationBarItem(icon: Icon(Icons.videogame_asset), label: 'Games'),
-          BottomNavigationBarItem(
+          BottomNavigationBarItem(icon: Icon(Icons.check_circle), label: 'Check-Ins'),
+	  BottomNavigationBarItem(
               icon: Icon(Icons.notifications), label: 'Notifications'),
           BottomNavigationBarItem(
               icon: Icon(Icons.leaderboard), label: 'Leaderboard'),

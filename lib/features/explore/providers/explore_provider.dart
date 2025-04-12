@@ -40,7 +40,7 @@ class ExploreNotifier extends StateNotifier<AsyncValue<ExploreData>> {
       final myId = 1;
       final follows = _ref.read(followProvider);
 
-      // Fetch trending posts from Supabase, ordered by trending_score
+      // Fetch trending posts
       final trendingPostsData = await _supabase
           .from('posts')
           .select('*, profiles(username)')
@@ -48,7 +48,7 @@ class ExploreNotifier extends StateNotifier<AsyncValue<ExploreData>> {
           .limit(10);
       final trendingPosts = trendingPostsData.map((map) => Post.fromMap(map)).toList();
 
-      // Fetch recommended users based on mutual followers and activity
+      // Fetch recommended users
       final profiles = _ref.read(profileProvider);
       final recommendedUsers = profiles
           .where((p) => p.id != myId && !(follows[myId]?.contains(p.id) ?? false))
@@ -56,12 +56,9 @@ class ExploreNotifier extends StateNotifier<AsyncValue<ExploreData>> {
         ..sort((a, b) => (b.followers ?? 0).compareTo(a.followers ?? 0))
         ..take(5);
 
-      // Fetch nearby spots using the user's location
-      final position = await LocationService.getCurrentLocation();
-      final nearbySpots = await LocationService.fetchNearbySpots(
-        position.latitude,
-        position.longitude,
-      );
+      // Fetch nearby spots with encrypted location
+      final locationData = await LocationService.getCurrentLocation();
+      final nearbySpots = await LocationService.fetchNearbySpots(locationData['encrypted']);
 
       // Fetch curated events and challenges
       final events = _ref.read(eventProvider);

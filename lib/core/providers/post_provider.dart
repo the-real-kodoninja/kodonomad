@@ -22,12 +22,18 @@ class PostNotifier extends StateNotifier<List<Post>> {
   }
 }
 
-  Future<void> addPost(Post post) async {
-    final newPostMap = await _dbHelper.createPost(post.toMap());
-    final newPost = Post.fromMap(newPostMap);
-    state = [...state, newPost];
-    await _supabase.from('posts').insert(newPost.toMap());
-  }
+  Future<void> addPost(int profileId, String content, String? imageUrl, String category) async {
+    final newPost = await _supabase.from('posts').insert({
+      'profile_id': profileId,
+      'content': content,
+      'image_url': imageUrl,
+      'timestamp': DateTime.now().toIso8601String(),
+      'category': category,
+    }).select().single();
+    await _supabase.from('profiles').update({
+      'points': _supabase.raw('points + 10'), // 10 points for posting
+    }).eq('id', profileId);
+    state = [Post.fromMap(newPost), ...state];
 
   Future<void> updatePost(Post post) async {
     await _dbHelper.updatePost(post.toMap());

@@ -99,22 +99,18 @@ class GameNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>>> {
       final gamesData = await _supabase.from('games').select();
       final games = gamesData.map((map) => Game.fromMap(map)).toList();
 
-      void _setupRealtime() {
-    _channel = _supabase.channel('games');
-    _channel.on(
-      RealtimeListenTypes.postgresChanges,
-      ChannelFilter(event: '*', schema: 'public', table: 'game_sessions'),
-      (payload, [ref]) {
-        fetchGames();
-      },
-    ).subscribe();
-  }
-
-  @override
-  void dispose() {
-    _supabase.removeChannel(_channel);
-    super.dispose();
-  }
+      // Add Nomad Quest if not already in the database
+      final nomadQuest = games.firstWhere(
+        (game) => game.name == 'Nomad Quest',
+        orElse: () async {
+          final newGame = await _supabase.from('games').insert({
+            'name': 'Nomad Quest',
+            'type': 'real_life',
+            'description': 'Discover the world’s hidden nomad treasures!',
+          }).select().single();
+          return Game.fromMap(newGame);
+        } as Game Function(),
+      );
 
       // Fetch active sessions
       final sessionsData = await _supabase

@@ -1,6 +1,7 @@
 // lib/features/games/screens/online_game_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_gamepad/flutter_gamepad.dart';
 import 'package:kodonomad/features/games/providers/game_provider.dart';
 
 class OnlineGameScreen extends ConsumerStatefulWidget {
@@ -13,10 +14,43 @@ class OnlineGameScreen extends ConsumerStatefulWidget {
 }
 
 class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
-  List<String?> board = List.filled(9, null); // 3x3 Tic-Tac-Toe board
+  List<String?> board = List.filled(9, null);
   String currentPlayer = 'X';
   String? winner;
-  int myId = 1; // Replace with actual user ID
+  int myId = 1;
+  int selectedIndex = 0; // Track the currently selected cell for gamepad navigation
+
+  @override
+  void initState() {
+    super.initState();
+    FlutterGamepad.eventStream.listen((event) {
+      setState(() {
+        if (winner != null) return;
+
+        // Navigate the board with D-pad or joystick
+        if (event.type == GamepadEventType.button && event.value == 1) {
+          if (event.button == GamepadButton.dpadUp) {
+            selectedIndex = (selectedIndex - 3) % 9;
+            if (selectedIndex < 0) selectedIndex += 9;
+          } else if (event.button == GamepadButton.dpadDown) {
+            selectedIndex = (selectedIndex + 3) % 9;
+          } else if (event.button == GamepadButton.dpadLeft) {
+            selectedIndex = (selectedIndex - 1) % 9;
+            if (selectedIndex < 0) selectedIndex += 9;
+          } else if (event.button == GamepadButton.dpadRight) {
+            selectedIndex = (selectedIndex + 1) % 9;
+          } else if (event.button == GamepadButton.buttonA) {
+            // Select the cell with the A button
+            if (board[selectedIndex] == null) {
+              board[selectedIndex] = currentPlayer;
+              currentPlayer = currentPlayer == 'X' ? 'O' : 'X';
+              winner = _checkWinner();
+            }
+          }
+        }
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +62,6 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
       appBar: AppBar(title: Text(widget.game.name)),
       body: Column(
         children: [
-          // Display available sessions
           Expanded(
             child: ListView.builder(
               itemCount: mySessions.length + 1,
@@ -66,6 +99,7 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
                             board = List.filled(9, null);
                             currentPlayer = 'X';
                             winner = null;
+                            selectedIndex = 0;
                           });
                         }
                       : null,
@@ -74,7 +108,6 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
             ),
           ),
 
-          // Tic-Tac-Toe game board
           if (mySessions.any((s) => s.participants.any((p) => p['profile_id'] == myId) && s.participants.length == 2)) ...[
             const SizedBox(height: 16),
             Text(winner != null ? 'Winner: $winner' : 'Current Player: $currentPlayer'),
@@ -99,7 +132,7 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
                   },
                   child: Container(
                     margin: const EdgeInsets.all(4),
-                    color: Colors.grey[200],
+                    color: index == selectedIndex ? Colors.yellow[200] : Colors.grey[200],
                     child: Center(
                       child: Text(
                         board[index] ?? '',
@@ -118,9 +151,9 @@ class _OnlineGameScreenState extends ConsumerState<OnlineGameScreen> {
 
   String? _checkWinner() {
     const winPatterns = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
-      [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
-      [0, 4, 8], [2, 4, 6], // Diagonals
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6],
     ];
 
     for (var pattern in winPatterns) {
